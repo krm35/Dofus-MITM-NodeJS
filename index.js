@@ -31,7 +31,6 @@ server.on('connection', function (socket) {
         constants.dofusPort
     );
 
-
     socket.on('data', function (data) {
         socket['client'].write(data);
     });
@@ -52,7 +51,7 @@ function connectToDofus(socket, ip, port) {
 
     socket['client'] = new net.Socket().connect({host: ip, port: port});
 
-    if (serverType === 'game'){
+    if (serverType === 'game') {
         constants.auth = false;
     }
 
