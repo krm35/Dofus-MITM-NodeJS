@@ -1,0 +1,7 @@
+{
+  "name": "dofus-mitm-nodejs",
+  "version": "1.0.0",
+  "dependencies": {
+    "frida": "^14.2.18"
+  }
+}
