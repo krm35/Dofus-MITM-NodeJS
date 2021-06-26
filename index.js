@@ -4,7 +4,7 @@ const net = require('net'),
     hook = require('./hook'),
     logs = require('./logs'),
     server = new net.Server().listen(process.argv[2] || 8000),
-    dofusRetro = false;
+    dofusRetro = true;
 
 if (!dofusRetro) {
     logs("Be careful, some packets from Dofus 2.0 servers contain multiple messages so the packetId is always for " +
@@ -45,10 +45,10 @@ server.on('connection', function (socket) {
                 port = split[1];
                 connectClient(socket, host, port);
             } else {
-                if (socket['clientSocket']) {
+                if (socket['clientSocket']['connected']) {
                     socket['clientSocket'].write(data);
                 } else {
-                    waitSend(socket, data);
+                    socket['clientSocket']['queue'].push(data);
                 }
                 dofusRetro ?
                     logs("from client", s.slice(0, -2))
@@ -62,21 +62,17 @@ server.on('connection', function (socket) {
 
     socket.on('end', function () {
         logs("close socket", host + ':' + port);
+        try {
+            socket['clientSocket'].destroy();
+        } catch (e) {
+
+        }
     });
 
     socket.on('error', function (err) {
 
     });
 });
-
-function waitSend(socket, data, counter) {
-    if (counter > 100) return;
-    if (socket['clientSocket']) {
-        socket['clientSocket'].write(data);
-    } else {
-        setTimeout(waitSend, 1000, socket, data, counter ? (counter + 1) : 1);
-    }
-}
 
 const domain = '.ankama-games.com';
 const gameServers = ["agride", "brumen", "furye", "ilyzaelle", "jahash", "julith", "merkator", "meriana", "nidas", "pandore", "ush", "ombre"];
@@ -85,10 +81,13 @@ for (let i in gameServers) gameServers[i] += domain;
 function connectClient(socket, host, port) {
 
     socket['clientSocket'] = new net.Socket();
+    socket['clientSocket']['queue'] = [];
 
     socket['clientSocket'].connect({host, port});
 
     socket['clientSocket'].on('connect', function () {
+        socket['clientSocket']['connected'] = true;
+        socket['clientSocket']['queue'].forEach(packet => socket['clientSocket'].write(packet));
     });
 
     socket['clientSocket'].on('data', function (data) {
@@ -116,6 +115,11 @@ function connectClient(socket, host, port) {
 
     socket['clientSocket'].on('close', function () {
         logs("close clientSocket", host + ':' + port);
+        try {
+            socket.destroy();
+        } catch (e) {
+
+        }
     });
 
     socket['clientSocket'].on('error', function (err) {
